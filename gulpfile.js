@@ -124,20 +124,17 @@ gulp.task('img', function () {
         .pipe(gulp.dest(distDir + '/img'));
 });
 
-gulp.task('lint', ['jshint', 'csslint']);
-
 gulp.task('jshint', function () {
     return gulp.src(files.myjs)
         .pipe(plugins.jshint())
-        .pipe(plugins.jshint.reporter('default'))
 });
 
 gulp.task('csslint', function () {
     return gulp.src(files.mycss)
         .pipe(plugins.csslint())
-        .pipe(plugins.csslint.reporter())
 });
 
+gulp.task('lint', gulp.series('jshint', 'csslint'));
 
 gulp.task('css', function () {
     return gulp.src(files.css)
@@ -153,9 +150,6 @@ gulp.task('html', function () {
         .pipe(gulp.dest(distDir))
 });
 
-
-gulp.task('font', ['bootstrap-font', 'ui-grid-font']);
-
 gulp.task('bootstrap-font', function () {
     //bootstrap css (bundled in css/bundle.css) references font files in a sibling dir (../fonts)
     return gulp.src(files.bootstrapFont)
@@ -167,6 +161,8 @@ gulp.task('ui-grid-font', function () {
     return gulp.src(files.uiGridFont)
         .pipe(gulp.dest(distCssDir));
 });
+
+gulp.task('font', gulp.series('bootstrap-font', 'ui-grid-font'));
 
 /**
  * Copy project LICENSE.txt and 3rd party license files to dist directory.
@@ -206,28 +202,28 @@ gulp.task('serve-only', function () {
 });
 
 /**
+ * Build and keep watching for javascript file changes
+ */
+gulp.task('building', gulp.series('lint', 'img', 'css', 'html', 'font', 'license', () => bundle.bind(null, w)));
+
+/**
  * Build and keep watching all file changes
  */
-gulp.task('watch', ['building'], function () {
+gulp.task('watch', gulp.series('building', () => {
     gulp.watch(files.html, ['html']);
     gulp.watch(files.img, ['img']);
     gulp.watch(files.mycss, ['csslint', 'css']);
     gulp.watch(files.bootstrapFont, ['bootstrap-font']);
     gulp.watch(files.uiGridFont, ['ui-grid-font']);
-});
+}));
 
 gulp.task('clean', function () {
     return del([distDir + '/**']);
 });
 
 /**
- * Build and keep watching for javascript file changes
- */
-gulp.task('building', ['lint', 'img', 'css', 'html', 'font', 'license'], bundle.bind(null, w));
-
-/**
  * Build and exit
  */
-gulp.task('build',    ['lint', 'img', 'css', 'html', 'font', 'license'], bundle.bind(null, b()));
+gulp.task('build', gulp.series('lint', 'img', 'css', 'html', 'font', 'license', done => bundle.bind(null, done())));
 
-gulp.task('default', ['serve']);
+gulp.task('default', gulp.series('serve', () => {}));

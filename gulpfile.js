@@ -86,32 +86,35 @@ var customOpts = {
 var opts = assign({}, watchify.args, customOpts);
 
 
-var b = function() {
-  return browserify(opts);
+var b = function () {
+    return browserify(opts);
 };
 
 var w = watchify(b());
 
-var bundle = function(tool) {
+var bundle = function (tool) {
     //This will replace /* @echo __REST_URL__ */ with real value
     //and replace __DEBUG__ with real value
-    tool.transform(preprocessify({
-        '__REST_URL__': getRestUrl(),
-        '__DEBUG__': isDebug()
-    }));
+    tool.transform(preprocessify, {
+        includeExtensions: ['.js'],
+        context: {
+            '__REST_URL__': getRestUrl(),
+            '__DEBUG__': isDebug()
+        }
+    });
 
-  return tool.bundle()
-          .on('error', plugins.util.log.bind(plugins.util, 'Browserify Error'))
-          .pipe(source('bundle.js'))
+    return tool.bundle()
+        .on('error', plugins.util.log.bind(plugins.util, 'Browserify Error'))
+        .pipe(source('bundle.js'))
 
-          //minify with source map file
-          .pipe(buffer())
-          //.pipe(plugins.sourcemaps.init({loadMaps: true}))
-          .pipe(plugins.if(!isDebug(), plugins.uglify()))
-          // Add transformation tasks to the pipeline here.
-          //.pipe(plugins.sourcemaps.write('./'))
+        //minify with source map file
+        .pipe(buffer())
+        //.pipe(plugins.sourcemaps.init({loadMaps: true}))
+        .pipe(plugins.if(!isDebug(), plugins.uglify()))
+        // Add transformation tasks to the pipeline here.
+        //.pipe(plugins.sourcemaps.write('./'))
 
-          .pipe(gulp.dest(distDir));
+        .pipe(gulp.dest(distDir));
 };
 
 w.on('update', bundle.bind(null, w));
@@ -146,7 +149,7 @@ gulp.task('css', function () {
 });
 
 gulp.task('html', function () {
-    return gulp.src(files.html, {base: './app'})
+    return gulp.src(files.html, { base: './app' })
         .pipe(gulp.dest(distDir))
 });
 
@@ -167,13 +170,13 @@ gulp.task('font', gulp.series('bootstrap-font', 'ui-grid-font'));
 /**
  * Copy project LICENSE.txt and 3rd party license files to dist directory.
  */
-gulp.task('license', function() {
+gulp.task('license', function () {
     gulp.src(files.thirdPartyLicense)
         .pipe(plugins.concat(thirdPartyLicenseFile))
         .pipe(gulp.dest(distDir));
 
-   return gulp.src(files.license)
-       .pipe(gulp.dest(distDir));
+    return gulp.src(files.license)
+        .pipe(gulp.dest(distDir));
 });
 
 /**
@@ -183,8 +186,8 @@ gulp.task('license', function() {
  * 3, browser-sync watches for any updates in dist dir, and push the new content to browser, including performing
  * css injection.
  */
-gulp.task('serve', function(done) {
-   runSequence('watch', 'serve-only', done);
+gulp.task('serve', function (done) {
+    runSequence('watch', 'serve-only', done);
 });
 
 /**
@@ -224,6 +227,9 @@ gulp.task('clean', function () {
 /**
  * Build and exit
  */
-gulp.task('build', gulp.series('lint', 'img', 'css', 'html', 'font', 'license', done => bundle.bind(null, done())));
+gulp.task('build', gulp.series('lint', 'img', 'css', 'html', 'font', 'license', done => {
+    bundle(b());
+    done();
+}));
 
-gulp.task('default', gulp.series('serve', () => {}));
+gulp.task('default', gulp.series('serve', () => { }));

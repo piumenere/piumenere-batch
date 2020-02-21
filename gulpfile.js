@@ -86,13 +86,13 @@ var customOpts = {
 var opts = assign({}, watchify.args, customOpts);
 
 
-var b = function () {
+var b = () => {
     return browserify(opts);
 };
 
 var w = watchify(b());
 
-var bundle = function (tool) {
+var bundle = (tool) => {
     //This will replace /* @echo __REST_URL__ */ with real value
     //and replace __DEBUG__ with real value
     tool.transform(preprocessify, {
@@ -121,56 +121,43 @@ w.on('update', bundle.bind(null, w));
 w.on('log', plugins.util.log);
 
 
-gulp.task('img', function () {
-    return gulp.src(files.img)
-        .pipe(plugins.if(!isDebug(), plugins.imagemin()))
-        .pipe(gulp.dest(distDir + '/img'));
-});
+gulp.task('img', () => gulp.src(files.img)
+    .pipe(plugins.if(!isDebug(), plugins.imagemin()))
+    .pipe(gulp.dest(distDir + '/img'))
+);
 
-gulp.task('jshint', function () {
-    return gulp.src(files.myjs)
-        .pipe(plugins.jshint())
-});
+gulp.task('jshint', () => gulp.src(files.myjs).pipe(plugins.jshint()));
 
-gulp.task('csslint', function () {
-    return gulp.src(files.mycss)
-        .pipe(plugins.csslint())
-});
+gulp.task('csslint', () => gulp.src(files.mycss).pipe(plugins.csslint()));
 
 gulp.task('lint', gulp.series('jshint', 'csslint'));
 
-gulp.task('css', function () {
-    return gulp.src(files.css)
-        //.pipe(plugins.sourcemaps.init({loadMaps: true}))
-        .pipe(plugins.concat('bundle.css'))
-        .pipe(plugins.if(!isDebug(), plugins.minifyCss()))
-        //.pipe(plugins.sourcemaps.write('./'))
-        .pipe(gulp.dest(distCssDir));
-});
+gulp.task('css', () => gulp.src(files.css)
+    //.pipe(plugins.sourcemaps.init({loadMaps: true}))
+    .pipe(plugins.concat('bundle.css'))
+    .pipe(plugins.if(!isDebug(), plugins.minifyCss()))
+    //.pipe(plugins.sourcemaps.write('./'))
+    .pipe(gulp.dest(distCssDir))
+);
 
-gulp.task('html', function () {
-    return gulp.src(files.html, { base: './app' })
-        .pipe(gulp.dest(distDir))
-});
+gulp.task('html', () => gulp.src(files.html, { base: './app' }).pipe(gulp.dest(distDir)));
 
-gulp.task('bootstrap-font', function () {
+gulp.task('bootstrap-font',
     //bootstrap css (bundled in css/bundle.css) references font files in a sibling dir (../fonts)
-    return gulp.src(files.bootstrapFont)
-        .pipe(gulp.dest(distDir + 'fonts'));
-});
+    () => gulp.src(files.bootstrapFont).pipe(gulp.dest(distDir + 'fonts'))
+);
 
-gulp.task('ui-grid-font', function () {
-    //angular-ui-grid css references font files in the same directory
-    return gulp.src(files.uiGridFont)
-        .pipe(gulp.dest(distCssDir));
-});
+gulp.task('ui-grid-font',
+    //angular-ui-grid css references font files in the same directory 
+    () => gulp.src(files.uiGridFont).pipe(gulp.dest(distCssDir))
+);
 
 gulp.task('font', gulp.series('bootstrap-font', 'ui-grid-font'));
 
 /**
  * Copy project LICENSE.txt and 3rd party license files to dist directory.
  */
-gulp.task('license', function () {
+gulp.task('license', () => {
     gulp.src(files.thirdPartyLicense)
         .pipe(plugins.concat(thirdPartyLicenseFile))
         .pipe(gulp.dest(distDir));
@@ -186,9 +173,7 @@ gulp.task('license', function () {
  * 3, browser-sync watches for any updates in dist dir, and push the new content to browser, including performing
  * css injection.
  */
-gulp.task('serve', function (done) {
-    runSequence('watch', 'serve-only', done);
-});
+gulp.task('serve', done => runSequence('watch', 'serve-only', done));
 
 /**
  * Just start browser-sync server, without running the 'build' or 'building' task. 
@@ -196,32 +181,35 @@ gulp.task('serve', function (done) {
  * Any javascript file changes will still be automatically sync'ed to browser,
  * but other files (html, image, css) will not.
  */
-gulp.task('serve-only', function () {
-    return browserSync.init(files.dist, {
-        server: {
-            baseDir: distDir
-        }
-    });
-});
+gulp.task('serve-only', () => browserSync.init(files.dist, {
+    server: {
+        baseDir: distDir
+    }
+}));
 
 /**
  * Build and keep watching for javascript file changes
  */
-gulp.task('building', gulp.series('lint', 'img', 'css', 'html', 'font', 'license', () => bundle.bind(null, w)));
+gulp.task('building', gulp.series('lint', 'img', 'css', 'html', 'font', 'license', done => {
+    bundle(w);
+    done();
+}));
 
 /**
  * Build and keep watching all file changes
  */
-gulp.task('watch', gulp.series('building', () => {
-    gulp.watch(files.html, ['html']);
-    gulp.watch(files.img, ['img']);
-    gulp.watch(files.mycss, ['csslint', 'css']);
-    gulp.watch(files.bootstrapFont, ['bootstrap-font']);
-    gulp.watch(files.uiGridFont, ['ui-grid-font']);
+gulp.task('watch', gulp.series('building', done => {
+    gulp.watch(files.html, gulp.series('html'));
+    gulp.watch(files.img, gulp.series('img'));
+    gulp.watch(files.mycss, gulp.series('csslint', 'css'));
+    gulp.watch(files.bootstrapFont, gulp.series('bootstrap-font'));
+    gulp.watch(files.uiGridFont, gulp.series('ui-grid-font'));
+    done();
 }));
 
-gulp.task('clean', function () {
-    return del([distDir + '/**']);
+gulp.task('clean', done => {
+    del([distDir + '/**']);
+    done();
 });
 
 /**

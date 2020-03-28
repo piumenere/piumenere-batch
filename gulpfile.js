@@ -48,6 +48,8 @@ var files = {
 
     dist: ['dist/**/*.html', 'dist/css/**', 'dist/fonts/**', 'dist/img/**', 'dist/*.js'],
 
+    cname: 'app/CNAME',
+
     license: 'app/LICENSE.txt',
 
     thirdPartyLicense: 'app/bower_components/**/*LICENSE*'
@@ -167,6 +169,14 @@ gulp.task('license', () => {
 });
 
 /**
+ * Copy CNAME to dist directory.
+ */
+gulp.task('cname', () => {
+    return gulp.src(files.cname)
+        .pipe(gulp.dest(distDir));
+});
+
+/**
  * To achieve live update and reload:
  * 1, watchify watches for any js file updates and run browserify when needed;
  * 2, gulp watch task watches for any non-js file updates and run relevant gulp tasks to sync up contents to dist dir;
@@ -215,7 +225,7 @@ gulp.task('clean', done => {
 /**
  * Build and exit
  */
-gulp.task('build', gulp.series('lint', 'img', 'css', 'html', 'font', 'license', done => {
+gulp.task('build', gulp.series('lint', 'img', 'css', 'html', 'font', 'license', 'cname', done => {
     bundle(b());
     done();
 }));
